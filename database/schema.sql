@@ -1,0 +1,16 @@
+-- SET TIMEZONE='UTC';
+-- DROP DATABASE IF EXISTS api_beers_db;
+-- CREATE DATABASE api_beers_db;
+
+DROP TABLE IF EXISTS beers;
+
+CREATE TABLE IF NOT EXISTS beers (
+    id SERIAL PRIMARY KEY, 
+    name VARCHAR(100) NOT NULL,
+    brewery VARCHAR(100) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+);

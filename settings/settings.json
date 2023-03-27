@@ -1,0 +1,10 @@
+{
+	"port": 3000,
+	"database": {
+		"host": "localhost",
+		"port": 5432,
+		"user": "postgres",
+		"password": "root",
+		"name": "api_beers_db"
+	}
+}
