@@ -10,7 +10,7 @@ import (
 type Service interface {
 	GetBeers(ctx context.Context) ([]model.Beer, error)
 	GetBeer(ctx context.Context, id uint64) (*model.Beer, error)
-	SaveBeer(ctx context.Context, input *model.BeerInput) (*model.Beer, error)
+	SaveBeer(ctx context.Context, input *model.InputBeer) (*model.Beer, error)
 	GetBeerBoxPrice(ctx context.Context, id, quantity uint64, currency string) (float64, error)
 }
 

@@ -13,7 +13,7 @@ type Beer struct {
 	UpdatedAt time.Time
 }
 
-type BeerInput struct {
+type InputBeer struct {
 	Name      string
 	Brewery   string
 	Country   string
@@ -21,4 +21,14 @@ type BeerInput struct {
 	Currency  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type InputUBeer struct {
+	Name      InputU
+	Brewery   InputU
+	Country   InputU
+	Price     InputU
+	Currency  InputU
+	CreatedAt InputU
+	UpdatedAt InputU
 }

@@ -19,7 +19,9 @@ type Repository interface {
 		currency string,
 	) (float64, error)
 
-	InsertBeer(ctx context.Context, input *model.BeerInput) (*entity.Beer, error)
+	InsertBeer(ctx context.Context, input *model.InputBeer) (*entity.Beer, error)
+	UpdateBeerByID(ctx context.Context, id uint64, input *model.InputUBeer) (*entity.Beer, error)
+	DeleteBeerByID(ctx context.Context, id uint64) error
 
 	RestartTable(ctx context.Context, src string) error
 }

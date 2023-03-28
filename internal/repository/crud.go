@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	ErrNotFoundEntity     = errors.New("not found entity")
 	ErrNoneEntityDeleted  = errors.New("none entity rows deleted in database")
 	ErrNoneEntityInserted = errors.New("none entity rows inserted in database")
 	ErrNoneEntityUpdated  = errors.New("none entity rows updated in database")
@@ -26,11 +27,11 @@ func (r *repository) insertEntity(ctx context.Context, query string, fields ...a
 	return id, err
 }
 
-//nolint:unused
 func (r *repository) updateEntity(ctx context.Context, query string, id uint64, fields ...any) error {
 	var result sql.Result
 
-	fields = append(fields, id)
+	// implement preppend
+	fields = append([]any{id}, fields...)
 
 	result, err := r.db.ExecContext(ctx, query, fields...)
 	if err != nil {
@@ -49,7 +50,6 @@ func (r *repository) updateEntity(ctx context.Context, query string, id uint64, 
 	return err
 }
 
-//nolint:unused
 func (r *repository) deleteEntity(ctx context.Context, query string, id uint64) error {
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {

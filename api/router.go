@@ -111,7 +111,7 @@ func (r *routerHandler) addBeer(c *fiber.Ctx) error {
 	}
 
 	now := time.Now().UTC()
-	beerInput := model.BeerInput{
+	beerInput := model.InputBeer{
 		Name:      beerInJSON.Name,
 		Brewery:   beerInJSON.Brewery,
 		Country:   beerInJSON.Country,

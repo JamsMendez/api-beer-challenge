@@ -34,7 +34,7 @@ func (s *service) GetBeer(ctx context.Context, id uint64) (*model.Beer, error) {
 	return beer, nil
 }
 
-func (s *service) SaveBeer(ctx context.Context, input *model.BeerInput) (*model.Beer, error) {
+func (s *service) SaveBeer(ctx context.Context, input *model.InputBeer) (*model.Beer, error) {
 	b, err := s.repository.InsertBeer(ctx, input)
 	if err != nil {
 		return nil, err

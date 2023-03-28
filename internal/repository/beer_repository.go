@@ -5,9 +5,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"api-beer-challenge/internal/entity"
@@ -68,9 +71,27 @@ const (
 		WHERE
 			id = $1;
 	`
+
+	queryUpdateBeerByID = `
+		UPDATE
+			beers
+		SET
+			%s
+		WHERE id = $1;
+	`
+
+	queryDeleteBeerByID = `
+		DELETE
+		FROM
+			beers
+		WHERE
+			id = $1;
+	`
 )
 
 const keyAPILayer = "..."
+
+var ErrRequestInvalid = errors.New("request invalid for api")
 
 type ResponseJSON struct {
 	Info struct {
@@ -100,7 +121,7 @@ func (r *repository) FindBeers(ctx context.Context) ([]entity.Beer, error) {
 func (r *repository) FindBeerByID(ctx context.Context, id uint64) (*entity.Beer, error) {
 	beer := entity.Beer{}
 
-	err := r.db.GetContext(ctx, &beer, queryFindBeers)
+	err := r.db.GetContext(ctx, &beer, queryFindBeerByID, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -113,6 +134,30 @@ func (r *repository) FindBeerByID(ctx context.Context, id uint64) (*entity.Beer,
 }
 
 func (r *repository) FindBoxPriceBeer(ctx context.Context, id, quantity uint64, to string) (float64, error) {
+	var price float64
+	b, err := r.FindBeerByID(ctx, id)
+	if err != nil {
+		return price, err
+	}
+
+	if b == nil {
+		return price, ErrNotFoundEntity
+	}
+
+	if quantity == 0 {
+		quantity = 6
+	}
+
+	amount := b.Price * float64(quantity)
+	price, err = getConvertCurrent(b.Currency, to, amount)
+	if err != nil {
+		return price, err
+	}
+
+	return price, nil
+}
+
+func (r *repository) FindBoxPriceBeerFake(ctx context.Context, id, quantity uint64, to string) (float64, error) {
 	var price float64
 	b, err := r.FindBeerByID(ctx, id)
 	if err != nil {
@@ -132,7 +177,7 @@ func (r *repository) FindBoxPriceBeer(ctx context.Context, id, quantity uint64, 
 	return price, nil
 }
 
-func (r *repository) InsertBeer(ctx context.Context, input *model.BeerInput) (*entity.Beer, error) {
+func (r *repository) InsertBeer(ctx context.Context, input *model.InputBeer) (*entity.Beer, error) {
 	beerID, err := r.insertEntity(
 		ctx,
 		queryInsertBeer,
@@ -157,6 +202,95 @@ func (r *repository) InsertBeer(ctx context.Context, input *model.BeerInput) (*e
 	return beer, nil
 }
 
+func (r *repository) UpdateBeerByID(ctx context.Context, id uint64, input *model.InputUBeer) (*entity.Beer, error) {
+	var fields []any
+	var columns []string
+	// first argument is ID
+	var numArg = 2
+
+	if input.Name.Valid {
+		fields = append(fields, input.Name.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("name = $%d", numArg),
+		)
+		numArg++
+	}
+
+	if input.Brewery.Valid {
+		fields = append(fields, input.Brewery.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("brewery = $%d", numArg),
+		)
+		numArg++
+	}
+
+	if input.Country.Valid {
+		fields = append(fields, input.Country.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("country = $%d", numArg),
+		)
+		numArg++
+	}
+
+	if input.Price.Valid {
+		fields = append(fields, input.Price.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("price = $%d", numArg),
+		)
+		numArg++
+	}
+
+	if input.Currency.Valid {
+		fields = append(fields, input.Currency.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("currency = $%d", numArg),
+		)
+		numArg++
+	}
+
+	if input.CreatedAt.Valid {
+		fields = append(fields, input.CreatedAt.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("created_at = $%d", numArg),
+		)
+		numArg++
+	}
+
+	if input.UpdatedAt.Valid {
+		fields = append(fields, input.UpdatedAt.Value)
+		columns = append(
+			columns,
+			fmt.Sprintf("updated_at = $%d", numArg),
+		)
+	}
+
+	values := strings.Join(columns, ", ")
+	query := fmt.Sprintf(queryUpdateBeerByID, values)
+
+	err := r.updateEntity(ctx, query, id, fields...)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := r.FindBeerByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, err
+}
+
+func (r *repository) DeleteBeerByID(ctx context.Context, id uint64) error {
+	err := r.deleteEntity(ctx, queryDeleteBeerByID, id)
+	return err
+}
+
 func (r *repository) RestartTable(ctx context.Context, src string) error {
 	buffer, err := os.ReadFile(src)
 	if err != nil {
@@ -169,10 +303,13 @@ func (r *repository) RestartTable(ctx context.Context, src string) error {
 }
 
 func getConvertCurrentFake(from, to string, amount float64) (float64, error) {
+	if from == to {
+		return amount, nil
+	}
+
 	return amount * 2, nil
 }
 
-//nolint:unused
 func getConvertCurrent(from, to string, amount float64) (float64, error) {
 	url := fmt.Sprintf(
 		"https://api.apilayer.com/currency_data/convert?from=%s&to=%s&amount=%.2f",
@@ -199,12 +336,22 @@ func getConvertCurrent(from, to string, amount float64) (float64, error) {
 	if err != nil {
 		return result, err
 	}
+
+	if res.StatusCode != http.StatusOK {
+		return result, ErrRequestInvalid
+	}
+
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
 
+	buffer, err := io.ReadAll(res.Body)
+	if err != nil {
+		return result, err
+	}
+
 	var resJSON ResponseJSON
-	err = json.NewDecoder(res.Body).Decode(&resJSON)
+	err = json.Unmarshal(buffer, &resJSON)
 	if err != nil {
 		return result, err
 	}
