@@ -1,8 +1,8 @@
 package settings
 
 import (
-	"encoding/json"
 	_ "embed"
+	"encoding/json"
 )
 
 //go:embed settings.json

@@ -1,16 +1,25 @@
 package repository
 
 import (
-	"api-beer-challenge/database"
-	"api-beer-challenge/internal/entity"
-	"api-beer-challenge/internal/model"
-	"api-beer-challenge/settings"
 	"context"
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"testing"
 	"time"
+
+	migrate "github.com/golang-migrate/migrate/v4"
+	migratepsql "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
+
+	"api-beer-challenge/internal/entity"
+	"api-beer-challenge/internal/model"
 )
 
 type testCaseBeer struct {
@@ -113,6 +122,24 @@ func setUpTestCases() {
 func TestBeer(t *testing.T) {
 	setUpTestCases()
 
+	db := newDB(t)
+	ctx := context.Background()
+
+	repo = New(db)
+	findCurrentBeers(ctx, t)
+	insertBeer(ctx, t)
+	findBeerByID(ctx, t)
+	findBeerBoxPrice(ctx, t)
+	findBeerBoxPriceFake(ctx, t)
+	updateBeerByID(ctx, t)
+	deleteBeerByID(ctx, t)
+	findBeerNotFound(ctx, t)
+}
+
+// test using connection database
+/* func TestBeerWithConnDB(t *testing.T) {
+	setUpTestCases()
+
 	ctx := context.Background()
 	nSettings, err := settings.New()
 	if err != nil {
@@ -125,7 +152,7 @@ func TestBeer(t *testing.T) {
 	}
 
 	repo = New(db)
-	err = repo.RestartTable(ctx, "./../../database/schema.sql")
+	err = repo.RestartTable(ctx, "./../../database/schema_test.sql")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -138,7 +165,7 @@ func TestBeer(t *testing.T) {
 	updateBeerByID(ctx, t)
 	deleteBeerByID(ctx, t)
 	findBeerNotFound(ctx, t)
-}
+} */
 
 func TestIsEqualsNotDeletedItems(t *testing.T) {
 	ok := repo.EqualsNotDeletedItems(nil)
@@ -311,4 +338,114 @@ func assertBeer(want, got *entity.Beer, t testing.TB) {
 	if !want.UpdatedAt.Equal(got.UpdatedAt) {
 		t.Fatalf("expected UpdatedAt %s, got UpdatedAt %s", want.UpdatedAt, got.UpdatedAt)
 	}
+}
+
+func newDB(tb testing.TB) *sqlx.DB {
+	dns := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword("test", "test"),
+		Path:   "api_beers_db",
+	}
+
+	q := dns.Query()
+	q.Add("sslmode", "disable")
+	dns.RawQuery = q.Encode()
+
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		tb.Fatalf("Colud not construct pool: %s", err)
+	}
+
+	pool.MaxWait = 10 * time.Second
+
+	err = pool.Client.Ping()
+	if err != nil {
+		tb.Fatalf("Could not connect to Docker: %s", err)
+	}
+
+	pwd, ok := dns.User.Password()
+	if !ok {
+		tb.Fatalf("Could not get user password to Postgres: %s", err)
+	}
+
+	// pull an image, creates a container based on it and runs it
+	options := &dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "15.2",
+		Env: []string{
+			fmt.Sprintf("POSTGRES_PASSWORD=%s", pwd),
+			fmt.Sprintf("POSTGRES_USER=%s", dns.User.Username()),
+			fmt.Sprintf("POSTGRES_DB=%s", dns.Path),
+		},
+		// exponse port container
+		// ExposedPorts: []string{"5432"},
+		// PortBindings: map[docker.Port][]docker.PortBinding{
+		// 	"5432": {
+		// 		{HostIP: "0.0.0.0", HostPort: "5432"},
+		// 	},
+		// },
+	}
+
+	resource, err := pool.RunWithOptions(options, func(config *docker.HostConfig) {
+		config.AutoRemove = true
+		config.RestartPolicy = docker.RestartPolicy{
+			Name: "no",
+		}
+	})
+
+	if err != nil {
+		tb.Fatalf("Could not start resource: %s", err)
+	}
+
+	// Tell docker to hard kill the container in 120 seconds
+	err = resource.Expire(120)
+	if err != nil {
+		tb.Fatalf("Could not sets expire associated container: %s", err)
+	}
+
+	tb.Cleanup(func() {
+		if err = pool.Purge(resource); err != nil {
+			tb.Fatalf("Could not purge container: %s", err)
+		}
+	})
+
+	// Others way of get host
+	// dns.Host = fmt.Sprintf("%s:5432", resource.Container.NetworkSettings.IPAddress)
+	// dns.Host = net.JoinHostPort(resource.GetBoundIP("5432/tcp"), resource.GetPort("5432/tcp"))
+	// dns.Host = "localhost:5432"
+	dns.Host = fmt.Sprintf("localhost:%s", resource.GetPort("5432/tcp"))
+	log.Println("Connecting to database on url: ", dns.String())
+
+	db, err := sqlx.Open("postgres", dns.String())
+	if err != nil {
+		tb.Fatalf("Could not open DB: %s", err)
+	}
+
+	tb.Cleanup(func() {
+		if err = db.Close(); err != nil {
+			tb.Fatalf("Could not close DB: %s", err)
+		}
+	})
+
+	if err = pool.Retry(func() error {
+		return db.Ping()
+	}); err != nil {
+		tb.Fatalf("Could not ping DB: %s", err)
+	}
+
+	driver, err := migratepsql.WithInstance(db.DB, &migratepsql.Config{})
+	if err != nil {
+		tb.Fatalf("Could not migrate (1): %s", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance("file://./../../database/migration", "postgres", driver)
+	if err != nil {
+		tb.Fatalf("Could not migrate (2): %s", err)
+	}
+
+	if err = m.Up(); err != nil && err != migrate.ErrNoChange {
+		tb.Fatalf("Could not migrate (3): %s", err)
+	}
+
+	return db
 }

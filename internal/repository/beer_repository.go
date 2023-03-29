@@ -303,11 +303,13 @@ func (r *repository) RestartTable(ctx context.Context, src string) error {
 }
 
 func getConvertCurrentFake(from, to string, amount float64) (float64, error) {
+	var err error
+
 	if from == to {
-		return amount, nil
+		return amount, err
 	}
 
-	return amount * 2, nil
+	return amount * 2, err
 }
 
 func getConvertCurrent(from, to string, amount float64) (float64, error) {
@@ -318,10 +320,14 @@ func getConvertCurrent(from, to string, amount float64) (float64, error) {
 		amount,
 	)
 
+	const seconds = 5
+
 	var result float64
+	timeout := seconds * time.Second
+
 	body := bytes.NewBuffer([]byte{})
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	client := &http.Client{}
