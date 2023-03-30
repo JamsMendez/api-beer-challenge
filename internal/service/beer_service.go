@@ -2,9 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"api-beer-challenge/internal/entity"
 	"api-beer-challenge/internal/model"
+)
+
+var (
+	ErrCurrencyEmpty = errors.New("currency value is empty")
 )
 
 func (s *service) GetBeers(ctx context.Context) ([]model.Beer, error) {
@@ -30,6 +35,10 @@ func (s *service) GetBeer(ctx context.Context, id uint64) (*model.Beer, error) {
 		return nil, err
 	}
 
+	if b == nil {
+		return nil, nil
+	}
+
 	beer := getBeerModel(b)
 	return beer, nil
 }
@@ -45,6 +54,10 @@ func (s *service) SaveBeer(ctx context.Context, input *model.InputBeer) (*model.
 }
 
 func (s *service) GetBeerBoxPrice(ctx context.Context, id, quantity uint64, currency string) (float64, error) {
+	if currency == "" {
+		return 0, ErrCurrencyEmpty
+	}
+
 	return s.repository.FindBoxPriceBeer(ctx, id, quantity, currency)
 }
 

@@ -7,6 +7,7 @@ import (
 	"api-beer-challenge/internal/repository"
 )
 
+//go:generate mockery --name=Service --output=service --inpackage
 type Service interface {
 	GetBeers(ctx context.Context) ([]model.Beer, error)
 	GetBeer(ctx context.Context, id uint64) (*model.Beer, error)
