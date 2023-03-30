@@ -91,7 +91,10 @@ const (
 
 const keyAPILayer = "..."
 
-var ErrRequestInvalid = errors.New("request invalid for api")
+var (
+	ErrRequestInvalid = errors.New("request invalid for api")
+	ErrParamToEmpty   = errors.New("param to is empty")
+)
 
 type ResponseJSON struct {
 	Info struct {
@@ -144,32 +147,16 @@ func (r *repository) FindBoxPriceBeer(ctx context.Context, id, quantity uint64, 
 		return price, ErrNotFoundEntity
 	}
 
+	if to == "" {
+		return price, ErrParamToEmpty
+	}
+
 	if quantity == 0 {
 		quantity = 6
 	}
 
 	amount := b.Price * float64(quantity)
 	price, err = getConvertCurrent(b.Currency, to, amount)
-	if err != nil {
-		return price, err
-	}
-
-	return price, nil
-}
-
-func (r *repository) FindBoxPriceBeerFake(ctx context.Context, id, quantity uint64, to string) (float64, error) {
-	var price float64
-	b, err := r.FindBeerByID(ctx, id)
-	if err != nil {
-		return price, err
-	}
-
-	if quantity == 0 {
-		quantity = 6
-	}
-
-	amount := b.Price * float64(quantity)
-	price, err = getConvertCurrentFake(b.Currency, to, amount)
 	if err != nil {
 		return price, err
 	}
@@ -300,16 +287,6 @@ func (r *repository) RestartTable(ctx context.Context, src string) error {
 	queryRestartTableBeers := string(buffer)
 	_, err = r.db.ExecContext(ctx, queryRestartTableBeers)
 	return err
-}
-
-func getConvertCurrentFake(from, to string, amount float64) (float64, error) {
-	var err error
-
-	if from == to {
-		return amount, err
-	}
-
-	return amount * 2, err
 }
 
 func getConvertCurrent(from, to string, amount float64) (float64, error) {

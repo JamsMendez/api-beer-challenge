@@ -1,4 +1,4 @@
-package repository
+package repository_test
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 
 	"api-beer-challenge/internal/entity"
 	"api-beer-challenge/internal/model"
+	"api-beer-challenge/internal/repository"
 )
 
 type testCaseBeer struct {
@@ -33,7 +34,7 @@ type testCaseBeer struct {
 
 var testCasesBeer map[string]testCaseBeer
 
-var repo *repository
+var repo repository.Repository
 
 func setUpTestCases() {
 	createdAt := time.Unix(time.Now().Unix(), 0).UTC()
@@ -125,12 +126,14 @@ func TestBeer(t *testing.T) {
 	db := newDB(t)
 	ctx := context.Background()
 
-	repo = New(db)
+	repo = repository.New(db)
 	findCurrentBeers(ctx, t)
 	insertBeer(ctx, t)
 	findBeerByID(ctx, t)
+	findBeerByIDNotFound(ctx, t)
 	findBeerBoxPrice(ctx, t)
-	findBeerBoxPriceFake(ctx, t)
+	findBeerBoxPriceQualityDefault(ctx, t)
+	findBeerBoxPriceCurrencyEmpty(ctx, t)
 	updateBeerByID(ctx, t)
 	deleteBeerByID(ctx, t)
 	findBeerNotFound(ctx, t)
@@ -147,7 +150,7 @@ func TestBeer(t *testing.T) {
 	}
 
 	db, err := database.GetConnection(ctx, nSettings)
-	if err != nil {
+	ipf err != nil {
 		log.Fatal(err)
 	}
 
@@ -167,7 +170,7 @@ func TestBeer(t *testing.T) {
 	findBeerNotFound(ctx, t)
 } */
 
-func TestIsEqualsNotDeletedItems(t *testing.T) {
+/* func TestIsEqualsNotDeletedItems(t *testing.T) {
 	ok := repo.EqualsNotDeletedItems(nil)
 	if ok {
 		t.Fatalf("expected equals false, got %v", ok)
@@ -177,7 +180,7 @@ func TestIsEqualsNotDeletedItems(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected equals true, got %v", ok)
 	}
-}
+} */
 
 func findCurrentBeers(ctx context.Context, t *testing.T) {
 	testCase := testCasesBeer["find_none_beers"]
@@ -223,6 +226,22 @@ func findBeerByID(ctx context.Context, t *testing.T) {
 	})
 }
 
+func findBeerByIDNotFound(ctx context.Context, t *testing.T) {
+	testCase := testCasesBeer["find_beer_by_id"]
+
+	t.Run(testCase.Description, func(t *testing.T) {
+		var ID uint64 = 99
+		b, err := repo.FindBeerByID(ctx, ID)
+		if err != nil {
+			t.Fatalf("expected error %v, got %v", testCase.ExpectedErr, err)
+		}
+
+		if b != nil {
+			t.Fatalf("expected Beer %v, got %v", nil, b)
+		}
+	})
+}
+
 func findBeerBoxPrice(ctx context.Context, t *testing.T) {
 	testCase := testCasesBeer["find_beer_boxprice"]
 
@@ -232,7 +251,7 @@ func findBeerBoxPrice(ctx context.Context, t *testing.T) {
 
 		price, err := repo.FindBoxPriceBeer(ctx, ID, quantity, currency)
 		if err != nil {
-			if errors.Is(err, ErrRequestInvalid) || errors.Is(err, context.DeadlineExceeded) {
+			if errors.Is(err, repository.ErrRequestInvalid) || errors.Is(err, context.DeadlineExceeded) {
 				fmt.Println("API ERROR: ", err)
 				return
 			}
@@ -246,20 +265,48 @@ func findBeerBoxPrice(ctx context.Context, t *testing.T) {
 	})
 }
 
-func findBeerBoxPriceFake(ctx context.Context, t *testing.T) {
+func findBeerBoxPriceQualityDefault(ctx context.Context, t *testing.T) {
 	testCase := testCasesBeer["find_beer_boxprice"]
 
-	t.Run(testCase.Description, func(t *testing.T) {
-		var ID, quantity uint64 = 1, 6
+	t.Run("find beer boxprice quantity default", func(t *testing.T) {
+		var ID, quantity uint64 = 1, 0
 		currency := "USD"
 
-		price, err := repo.FindBoxPriceBeerFake(ctx, ID, quantity, currency)
+		price, err := repo.FindBoxPriceBeer(ctx, ID, quantity, currency)
 		if err != nil {
+			if errors.Is(err, repository.ErrRequestInvalid) || errors.Is(err, context.DeadlineExceeded) {
+				fmt.Println("API ERROR: ", err)
+				return
+			}
+
 			t.Fatalf("expected error %v, got %v", testCase.ExpectedErr, err)
 		}
 
 		if price == 0 {
 			t.Fatalf("expected price != 0, got %v", price)
+		}
+	})
+}
+
+func findBeerBoxPriceCurrencyEmpty(ctx context.Context, t *testing.T) {
+	t.Run("find beer boxprice currency empty", func(t *testing.T) {
+		var ID, quantity uint64 = 1, 6
+		currency := ""
+
+		price, err := repo.FindBoxPriceBeer(ctx, ID, quantity, currency)
+		if err != nil {
+			if errors.Is(err, repository.ErrRequestInvalid) || errors.Is(err, context.DeadlineExceeded) {
+				fmt.Println("API ERROR: ", err)
+				return
+			}
+
+			if !errors.Is(err, repository.ErrParamToEmpty) {
+				t.Fatalf("expected error %v, got %v", repository.ErrParamToEmpty, err)
+			}
+		}
+
+		if price != 0 {
+			t.Fatalf("expected price == 0, got %v", price)
 		}
 	})
 }

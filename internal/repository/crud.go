@@ -14,10 +14,6 @@ var (
 	ErrNoColums           = errors.New("not found columns to update")
 )
 
-func (r *repository) EqualsNotDeletedItems(err error) bool {
-	return errors.Is(err, ErrNoneEntityDeleted)
-}
-
 func (r *repository) insertEntity(ctx context.Context, query string, fields ...any) (id uint64, err error) {
 	err = r.db.GetContext(ctx, &id, query, fields...)
 	if err != nil {

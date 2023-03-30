@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+//go:generate mockery --name=Repository --output=repository --inpackage
 type Repository interface {
 	FindBeers(ctx context.Context) ([]entity.Beer, error)
 	FindBeerByID(ctx context.Context, id uint64) (*entity.Beer, error)
@@ -30,6 +31,6 @@ type repository struct {
 	db *sqlx.DB
 }
 
-func New(db *sqlx.DB) *repository {
+func New(db *sqlx.DB) Repository {
 	return &repository{db}
 }
