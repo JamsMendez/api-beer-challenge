@@ -16,8 +16,8 @@ type API struct {
 }
 
 func (a *API) Start() {
-	rHandler := newRouterHandler(a.service)
-	setUpRouters(a.app, rHandler)
+	rHandler := NewRouterHandler(a.service)
+	SetUpRouters(a.app, rHandler)
 
 	err := a.app.Listen(port)
 	log.Fatal(err)
@@ -30,7 +30,7 @@ func New(s service.Service) *API {
 	}
 }
 
-func setUpRouters(app *fiber.App, rHandler *routerHandler) {
+func SetUpRouters(app *fiber.App, rHandler *routerHandler) {
 	groupRouter := app.Group(prefixAPI)
 	groupRouter.Get("/beers", rHandler.getBeers)
 	groupRouter.Get("/beers/:id", rHandler.getBeer)

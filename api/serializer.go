@@ -2,9 +2,9 @@ package api
 
 import "api-beer-challenge/internal/model"
 
-const dateTimeFormat = "2006-01-02 15:04:05"
+const DateTimeFormat = "2006-01-02 15:04:05"
 
-type beerJSON struct {
+type BeerJSON struct {
 	ID        uint64  `json:"id"`
 	Name      string  `json:"name"`
 	Brewery   string  `json:"brewery"`
@@ -15,7 +15,7 @@ type beerJSON struct {
 	UpdatedAt string  `json:"updated_at"`
 }
 
-type beerInputJSON struct {
+type BeerInputJSON struct {
 	Name     string  `json:"name"`
 	Brewery  string  `json:"brewery"`
 	Country  string  `json:"country"`
@@ -23,7 +23,7 @@ type beerInputJSON struct {
 	Currency string  `json:"currency"`
 }
 
-type beerBoxPriceJSON struct {
+type BeerBoxPriceJSON struct {
 	ID       uint64  `json:"id"`
 	Name     string  `json:"name"`
 	Brewery  string  `json:"brewery"`
@@ -36,16 +36,16 @@ type MessageJSON struct {
 	Message string `json:"message"`
 }
 
-func beerToJSON(b *model.Beer) *beerJSON {
-	bJSON := beerJSON{
+func BeerToJSON(b *model.Beer) *BeerJSON {
+	bJSON := BeerJSON{
 		ID:        b.ID,
 		Name:      b.Name,
 		Brewery:   b.Brewery,
 		Country:   b.Country,
 		Price:     b.Price,
 		Currency:  b.Currency,
-		CreatedAt: b.CreatedAt.Format(dateTimeFormat),
-		UpdatedAt: b.UpdatedAt.Format(dateTimeFormat),
+		CreatedAt: b.CreatedAt.Format(DateTimeFormat),
+		UpdatedAt: b.UpdatedAt.Format(DateTimeFormat),
 	}
 
 	return &bJSON

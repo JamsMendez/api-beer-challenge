@@ -5,6 +5,7 @@ import (
 	"api-beer-challenge/internal/service"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -16,7 +17,7 @@ type routerHandler struct {
 	service service.Service
 }
 
-func newRouterHandler(s service.Service) *routerHandler {
+func NewRouterHandler(s service.Service) *routerHandler {
 	return &routerHandler{s}
 }
 
@@ -26,11 +27,11 @@ func (r *routerHandler) getBeers(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusInternalServerError)
 	}
 
-	beers := []beerJSON{}
+	beers := []BeerJSON{}
 
 	for index := range bb {
 		b := bb[index]
-		beer := beerToJSON(&b)
+		beer := BeerToJSON(&b)
 		beers = append(beers, *beer)
 	}
 
@@ -55,12 +56,17 @@ func (r *routerHandler) getBeer(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	bJSON := beerToJSON(beer)
+	if beer == nil {
+		return c.JSON(nil)
+	}
+
+	bJSON := BeerToJSON(beer)
 	return c.JSON(bJSON)
 }
 
 func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
-	paramID, err := c.ParamsInt("beerID")
+	const keyBeerID = "beerID"
+	paramID, err := c.ParamsInt(keyBeerID)
 	if err != nil {
 		msg := MessageJSON{Message: "invalid param 'id', must be a positive integer"}
 		return c.Status(http.StatusBadRequest).JSON(msg)
@@ -74,16 +80,37 @@ func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
 	id := uint64(paramID)
 
 	const keyQuantity = "quantity"
-	const keyCurrency = "currency"
-	const defaultCurrency = "USD"
-	const defaultQuantity = 6
+	const quantityDefault = 6
+	var quantity uint64
 
-	quantity := c.QueryInt(keyQuantity, defaultQuantity)
-	currency := c.Query(keyCurrency, defaultCurrency)
+	queryQuantity := c.Query(keyQuantity)
+	if queryQuantity == "" {
+		quantity = quantityDefault
+	} else {
+		var value int
+		value, err = strconv.Atoi(queryQuantity)
+		if err != nil {
+			msg := MessageJSON{Message: "invalid query 'quantity', must be a positive integer"}
+			return c.Status(http.StatusBadRequest).JSON(msg)
+		}
+
+		quantity = uint64(value)
+	}
+
+	const keyCurrency = "currency"
+	currency := c.Query(keyCurrency)
+	if currency == "" {
+		msg := MessageJSON{Message: "param required 'currency'"}
+		return c.Status(http.StatusBadRequest).JSON(msg)
+	}
 
 	beer, err := r.service.GetBeer(c.Context(), id)
 	if err != nil {
 		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	if beer == nil {
+		return c.JSON(nil)
 	}
 
 	boxPrice, err := r.service.GetBeerBoxPrice(c.Context(), beer.ID, uint64(quantity), currency)
@@ -91,12 +118,12 @@ func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusInternalServerError)
 	}
 
-	beerJSON := beerBoxPriceJSON{
+	beerJSON := BeerBoxPriceJSON{
 		ID:       beer.ID,
 		Name:     beer.Name,
 		Brewery:  beer.Brewery,
 		Currency: currency,
-		Quantity: uint64(quantity),
+		Quantity: quantity,
 		BoxPrice: boxPrice,
 	}
 
@@ -104,21 +131,22 @@ func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
 }
 
 func (r *routerHandler) addBeer(c *fiber.Ctx) error {
-	beerInJSON := beerInputJSON{}
+	beerInJSON := BeerInputJSON{}
 	err := json.Unmarshal(c.Body(), &beerInJSON)
 	if err != nil {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	now := time.Now().UTC()
+	createdAt := time.Unix(time.Now().Unix(), 0).UTC()
+
 	beerInput := model.InputBeer{
 		Name:      beerInJSON.Name,
 		Brewery:   beerInJSON.Brewery,
 		Country:   beerInJSON.Country,
 		Price:     beerInJSON.Price,
 		Currency:  beerInJSON.Currency,
-		CreatedAt: now,
-		UpdatedAt: now,
+		CreatedAt: createdAt,
+		UpdatedAt: createdAt,
 	}
 
 	beer, err := r.service.SaveBeer(c.Context(), &beerInput)
@@ -126,6 +154,6 @@ func (r *routerHandler) addBeer(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusInternalServerError)
 	}
 
-	bJSON := beerToJSON(beer)
+	bJSON := BeerToJSON(beer)
 	return c.JSON(bJSON)
 }
