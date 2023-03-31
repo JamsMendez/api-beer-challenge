@@ -9,18 +9,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetNoneBeers(t *testing.T) {
+func TestGetBeers(t *testing.T) {
 	mockRepository.Test(t)
 
 	ctx := context.Background()
-	expected := []model.Beer{}
+	expected := []model.Beer{
+		{
+			ID:        1,
+			Name:      "Corona",
+			Brewery:   "Grupo Modelo",
+			Country:   "Mexico",
+			Price:     25.00,
+			Currency:  "MXN",
+			CreatedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+		{
+			ID:        2,
+			Name:      "Estrella",
+			Brewery:   "BeerHouse",
+			Country:   "Mexico",
+			Price:     20.00,
+			Currency:  "MXN",
+			CreatedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+	}
 
 	beers, err := serv.GetBeers(ctx)
 	if err != nil {
 		t.Fatalf("expected %v, got %v", expected, beers)
 	}
 
-	assert.Empty(t, beers)
+	assert.Equal(t, expected, beers)
 }
 
 func TestGetBeer(t *testing.T) {

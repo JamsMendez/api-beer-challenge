@@ -20,8 +20,33 @@ func TestMain(m *testing.M) {
 	mockRepository = &MockRepository{}
 
 	// get all beers when are none
-	beersNone := []entity.Beer{}
-	mockRepository.On("FindBeers", mock.Anything).Return(beersNone, nil)
+	// beersNone := []entity.Beer{}
+	// mockRepository.On("FindBeers", mock.Anything).Return(beersNone, nil)
+
+	beers := []entity.Beer{
+		{
+			ID:        1,
+			Name:      "Corona",
+			Brewery:   "Grupo Modelo",
+			Country:   "Mexico",
+			Price:     25.00,
+			Currency:  "MXN",
+			CreatedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+		{
+			ID:        2,
+			Name:      "Estrella",
+			Brewery:   "BeerHouse",
+			Country:   "Mexico",
+			Price:     20.00,
+			Currency:  "MXN",
+			CreatedAt: createdAt,
+			UpdatedAt: createdAt,
+		},
+	}
+
+	mockRepository.On("FindBeers", mock.Anything).Return(beers, nil)
 
 	// get one beer
 	beerID := uint64(1)
