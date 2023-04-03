@@ -1,17 +1,14 @@
 package api
 
 import (
+	"net/http"
+	"time"
+
 	"api-beer-challenge/internal/model"
 	"api-beer-challenge/internal/service"
-	"encoding/json"
-	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
-
-const prefixAPI = "/api"
 
 type routerHandler struct {
 	service service.Service
@@ -39,69 +36,9 @@ func (r *routerHandler) getBeers(c *fiber.Ctx) error {
 }
 
 func (r *routerHandler) getBeer(c *fiber.Ctx) error {
-	paramID, err := c.ParamsInt("id")
-	if err != nil {
-		msg := MessageJSON{Message: "invalid param 'id', must be a positive integer"}
-		return c.Status(http.StatusBadRequest).JSON(msg)
-	}
-
-	if paramID <= 0 {
-		msg := MessageJSON{Message: "invalid param 'id', must be a positive integer"}
-		return c.Status(http.StatusBadRequest).JSON(msg)
-	}
-
-	id := uint64(paramID)
-	beer, err := r.service.GetBeer(c.Context(), id)
-	if err != nil {
+	id, ok := c.Locals(keyParamID).(uint64)
+	if !ok {
 		return c.SendStatus(http.StatusBadRequest)
-	}
-
-	if beer == nil {
-		return c.JSON(nil)
-	}
-
-	bJSON := BeerToJSON(beer)
-	return c.JSON(bJSON)
-}
-
-func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
-	const keyBeerID = "beerID"
-	paramID, err := c.ParamsInt(keyBeerID)
-	if err != nil {
-		msg := MessageJSON{Message: "invalid param 'id', must be a positive integer"}
-		return c.Status(http.StatusBadRequest).JSON(msg)
-	}
-
-	if paramID <= 0 {
-		msg := MessageJSON{Message: "invalid param 'id', must be a positive integer"}
-		return c.Status(http.StatusBadRequest).JSON(msg)
-	}
-
-	id := uint64(paramID)
-
-	const keyQuantity = "quantity"
-	const quantityDefault = 6
-	var quantity uint64
-
-	queryQuantity := c.Query(keyQuantity)
-	if queryQuantity == "" {
-		quantity = quantityDefault
-	} else {
-		var value int
-		value, err = strconv.Atoi(queryQuantity)
-		if err != nil {
-			msg := MessageJSON{Message: "invalid query 'quantity', must be a positive integer"}
-			return c.Status(http.StatusBadRequest).JSON(msg)
-		}
-
-		quantity = uint64(value)
-	}
-
-	const keyCurrency = "currency"
-	currency := c.Query(keyCurrency)
-	if currency == "" {
-		msg := MessageJSON{Message: "param required 'currency'"}
-		return c.Status(http.StatusBadRequest).JSON(msg)
 	}
 
 	beer, err := r.service.GetBeer(c.Context(), id)
@@ -113,7 +50,36 @@ func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
 		return c.JSON(nil)
 	}
 
-	boxPrice, err := r.service.GetBeerBoxPrice(c.Context(), beer.ID, uint64(quantity), currency)
+	bJSON := BeerToJSON(beer)
+	return c.JSON(bJSON)
+}
+
+func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
+	id, ok := c.Locals(keyParamBeerID).(uint64)
+	if !ok {
+		return c.SendStatus(http.StatusBadRequest)
+	}
+
+	quantity, ok := c.Locals(keyQueryQuantity).(uint64)
+	if !ok {
+		return c.SendStatus(http.StatusBadRequest)
+	}
+
+	currency, ok := c.Locals(keyQueryCurrency).(string)
+	if !ok {
+		return c.SendStatus(http.StatusBadRequest)
+	}
+
+	beer, err := r.service.GetBeer(c.Context(), id)
+	if err != nil {
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	if beer == nil {
+		return c.JSON(nil)
+	}
+
+	boxPrice, err := r.service.GetBeerBoxPrice(c.Context(), beer.ID, quantity, currency)
 	if err != nil {
 		return c.SendStatus(http.StatusInternalServerError)
 	}
@@ -131,9 +97,8 @@ func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
 }
 
 func (r *routerHandler) addBeer(c *fiber.Ctx) error {
-	beerInJSON := BeerInputJSON{}
-	err := json.Unmarshal(c.Body(), &beerInJSON)
-	if err != nil {
+	beerInJSON, ok := c.Locals(keyInput).(BeerInputJSON)
+	if !ok {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 

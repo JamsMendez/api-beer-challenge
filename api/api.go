@@ -8,7 +8,10 @@ import (
 	"api-beer-challenge/internal/service"
 )
 
-const port = ":3000"
+const (
+	port      = ":3000"
+	prefixAPI = "/api"
+)
 
 type API struct {
 	service service.Service
@@ -33,7 +36,7 @@ func New(s service.Service) *API {
 func SetUpRouters(app *fiber.App, rHandler *routerHandler) {
 	groupRouter := app.Group(prefixAPI)
 	groupRouter.Get("/beers", rHandler.getBeers)
-	groupRouter.Get("/beers/:id", rHandler.getBeer)
-	groupRouter.Get("/beers/:beerID/boxprice", rHandler.getBeerBoxPrice)
-	groupRouter.Post("/beers", rHandler.addBeer)
+	groupRouter.Get("/beers/:id", validateReqGetBeer, rHandler.getBeer)
+	groupRouter.Get("/beers/:beerID/boxprice", validateReqGetBeerBoxPrice, rHandler.getBeerBoxPrice)
+	groupRouter.Post("/beers", validateReqAddBeer, rHandler.addBeer)
 }

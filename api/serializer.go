@@ -4,6 +4,15 @@ import "api-beer-challenge/internal/model"
 
 const DateTimeFormat = "2006-01-02 15:04:05"
 
+const (
+	keyParamID       = "id"
+	keyParamBeerID   = "beerID"
+	keyQueryQuantity = "quantity"
+	keyQueryCurrency = "currency"
+
+	keyInput = "input"
+)
+
 type BeerJSON struct {
 	ID        uint64  `json:"id"`
 	Name      string  `json:"name"`
@@ -16,11 +25,11 @@ type BeerJSON struct {
 }
 
 type BeerInputJSON struct {
-	Name     string  `json:"name"`
-	Brewery  string  `json:"brewery"`
-	Country  string  `json:"country"`
-	Price    float64 `json:"price"`
-	Currency string  `json:"currency"`
+	Name     string  `json:"name" validate:"required,min=2"`
+	Brewery  string  `json:"brewery" validate:"required,min=2"`
+	Country  string  `json:"country" validate:"required,min=2"`
+	Price    float64 `json:"price" validate:"required,number,gte=0"`
+	Currency string  `json:"currency" validate:"required,len=3"`
 }
 
 type BeerBoxPriceJSON struct {
@@ -32,7 +41,7 @@ type BeerBoxPriceJSON struct {
 	BoxPrice float64 `json:"box_price"`
 }
 
-type MessageJSON struct {
+type ErrorResponseJSON struct {
 	Message string `json:"message"`
 }
 
