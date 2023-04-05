@@ -12,6 +12,7 @@ services:
       - POSTGRES_USER=beers_user
       - POSTGRES_PASSWORD=secret_pwd_db
     volumes:
+      - api-beers-db-data:/var/lib/postgresql/data
       - ./migrations/000001_api_beers_schema.up.sql:/docker-entrypoint-initdb.d/schema.up.sql
 
   api-beers:
