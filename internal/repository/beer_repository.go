@@ -89,9 +89,8 @@ const (
 	`
 )
 
-const keyAPILayer = "..."
-
 var (
+	ErrAPIKeyEmpty    = errors.New("key api empty")
 	ErrRequestInvalid = errors.New("request invalid for api")
 	ErrParamToEmpty   = errors.New("param to is empty")
 )
@@ -311,6 +310,11 @@ func getConvertCurrent(from, to string, amount float64) (float64, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, body)
 	if err != nil {
 		return result, err
+	}
+
+	keyAPILayer := os.Getenv("API_KEY_CURRENCYLAYER")
+	if keyAPILayer == "" {
+		return result, ErrAPIKeyEmpty
 	}
 
 	req.Header.Set("apiKey", keyAPILayer)

@@ -139,49 +139,6 @@ func TestBeer(t *testing.T) {
 	findBeerNotFound(ctx, t)
 }
 
-// test using connection database
-/* func TestBeerWithConnDB(t *testing.T) {
-	setUpTestCases()
-
-	ctx := context.Background()
-	nSettings, err := settings.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db, err := database.GetConnection(ctx, nSettings)
-	ipf err != nil {
-		log.Fatal(err)
-	}
-
-	repo = New(db)
-	err = repo.RestartTable(ctx, "./../../database/schema_test.sql")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	findCurrentBeers(ctx, t)
-	insertBeer(ctx, t)
-	findBeerByID(ctx, t)
-	findBeerBoxPrice(ctx, t)
-	findBeerBoxPriceFake(ctx, t)
-	updateBeerByID(ctx, t)
-	deleteBeerByID(ctx, t)
-	findBeerNotFound(ctx, t)
-} */
-
-/* func TestIsEqualsNotDeletedItems(t *testing.T) {
-	ok := repo.EqualsNotDeletedItems(nil)
-	if ok {
-		t.Fatalf("expected equals false, got %v", ok)
-	}
-
-	ok = repo.EqualsNotDeletedItems(ErrNoneEntityDeleted)
-	if !ok {
-		t.Fatalf("expected equals true, got %v", ok)
-	}
-} */
-
 func findCurrentBeers(ctx context.Context, t *testing.T) {
 	testCase := testCasesBeer["find_none_beers"]
 
@@ -251,11 +208,6 @@ func findBeerBoxPrice(ctx context.Context, t *testing.T) {
 
 		price, err := repo.FindBoxPriceBeer(ctx, ID, quantity, currency)
 		if err != nil {
-			if errors.Is(err, repository.ErrRequestInvalid) || errors.Is(err, context.DeadlineExceeded) {
-				fmt.Println("API ERROR: ", err)
-				return
-			}
-
 			t.Fatalf("expected error %v, got %v", testCase.ExpectedErr, err)
 		}
 
