@@ -457,10 +457,10 @@ func newDB(tb testing.TB) *sqlx.DB {
 	})
 
 	// Others way of get host
-	// dns.Host = fmt.Sprintf("%s:5432", resource.Container.NetworkSettings.IPAddress)
 	// dns.Host = net.JoinHostPort(resource.GetBoundIP("5432/tcp"), resource.GetPort("5432/tcp"))
 	// dns.Host = "localhost:5432"
-	dns.Host = fmt.Sprintf("localhost:%s", resource.GetPort("5432/tcp"))
+	// dns.Host = fmt.Sprintf("localhost:%s", resource.GetPort("5432/tcp"))
+	dns.Host = fmt.Sprintf("%s:5432", resource.Container.NetworkSettings.IPAddress)
 	log.Println("Connecting to database on url: ", dns.String())
 
 	db, err := sqlx.Open("postgres", dns.String())
@@ -485,7 +485,7 @@ func newDB(tb testing.TB) *sqlx.DB {
 		tb.Fatalf("Could not migrate (1): %s", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file://./../../database/migration", "postgres", driver)
+	m, err := migrate.NewWithDatabaseInstance("file://./../../migrations", "postgres", driver)
 	if err != nil {
 		tb.Fatalf("Could not migrate (2): %s", err)
 	}
