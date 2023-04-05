@@ -26,5 +26,5 @@ func main() {
 	repo := repository.New(db)
 	serv := service.New(repo)
 
-	api.New(serv).Start()
+	api.New(serv).Start(s.Port)
 }

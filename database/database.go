@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"api-beer-challenge/settings"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-
-	"api-beer-challenge/settings"
 )
 
 func GetConnection(ctx context.Context, s *settings.Settings) (*sqlx.DB, error) {

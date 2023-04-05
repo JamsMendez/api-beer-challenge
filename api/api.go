@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,7 +10,6 @@ import (
 )
 
 const (
-	port      = ":3000"
 	prefixAPI = "/api"
 )
 
@@ -18,11 +18,12 @@ type API struct {
 	app     *fiber.App
 }
 
-func (a *API) Start() {
+func (a *API) Start(port int) {
 	rHandler := NewRouterHandler(a.service)
 	SetUpRouters(a.app, rHandler)
 
-	err := a.app.Listen(port)
+	nPort := fmt.Sprintf(":%d", port)
+	err := a.app.Listen(nPort)
 	log.Fatal(err)
 }
 
