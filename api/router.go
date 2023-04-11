@@ -97,7 +97,7 @@ func (r *routerHandler) getBeerBoxPrice(c *fiber.Ctx) error {
 }
 
 func (r *routerHandler) addBeer(c *fiber.Ctx) error {
-	beerInJSON, ok := c.Locals(keyInput).(BeerInputJSON)
+	beerInJSON, ok := c.Locals(keyInput).(BeerNewJSON)
 	if !ok {
 		return c.SendStatus(http.StatusBadRequest)
 	}
@@ -119,6 +119,6 @@ func (r *routerHandler) addBeer(c *fiber.Ctx) error {
 		return c.SendStatus(http.StatusInternalServerError)
 	}
 
-	bJSON := BeerToJSON(beer)
-	return c.JSON(bJSON)
+	beerJSON := BeerToJSON(beer)
+	return c.JSON(&beerJSON)
 }

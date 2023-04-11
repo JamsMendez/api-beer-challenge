@@ -1,12 +1,9 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -52,7 +49,6 @@ func validateReqGetBeerBoxPrice(c *fiber.Ctx) error {
 	}
 
 	id := uint64(paramBeerID)
-	c.Locals(keyParamBeerID, id)
 
 	const quantityDefault = 6
 	var quantity uint64
@@ -73,8 +69,6 @@ func validateReqGetBeerBoxPrice(c *fiber.Ctx) error {
 		quantity = uint64(value)
 	}
 
-	c.Locals(keyQueryQuantity, quantity)
-
 	currency := c.Query(keyQueryCurrency)
 	if currency == "" {
 		msg := ErrorResponseJSON{
@@ -83,34 +77,26 @@ func validateReqGetBeerBoxPrice(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(msg)
 	}
 
+	c.Locals(keyParamBeerID, id)
+	c.Locals(keyQueryQuantity, quantity)
 	c.Locals(keyQueryCurrency, currency)
 
 	return c.Next()
 }
 
 func validateReqAddBeer(c *fiber.Ctx) error {
-	var beerInJSON BeerInputJSON
-	err := json.Unmarshal(c.Body(), &beerInJSON)
+	var beerInJSON BeerNewJSON
+	err := beerInJSON.New(c.Body())
 	if err != nil {
 		return c.SendStatus(http.StatusBadRequest)
 	}
-	validate := validator.New()
-	err = validate.Struct(beerInJSON)
+
+	err = beerInJSON.Validate()
 	if err != nil {
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			return c.SendStatus(http.StatusBadRequest)
-		}
-
-		for _, err := range err.(validator.ValidationErrors) {
-			msg := ErrorResponseJSON{
-				Message: fmt.Sprintf("field %s invalid", err.Field()),
-			}
-
-			return c.Status(http.StatusBadRequest).JSON(msg)
-		}
+		msg := ErrorResponseJSON{Message: err.Error()}
+		return c.Status(http.StatusBadRequest).JSON(msg)
 	}
 
 	c.Locals(keyInput, beerInJSON)
-
 	return c.Next()
 }
