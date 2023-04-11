@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gofiber/fiber/v2"
-
 	"api-beer-challenge/internal/service"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 const (
@@ -36,6 +37,10 @@ func New(s service.Service) *API {
 
 func SetUpRouters(app *fiber.App, rHandler *routerHandler) {
 	groupRouter := app.Group(prefixAPI)
+	groupRouter.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 	groupRouter.Get("/beers", rHandler.getBeers)
 	groupRouter.Get("/beers/:id", validateReqGetBeer, rHandler.getBeer)
 	groupRouter.Get("/beers/:beerID/boxprice", validateReqGetBeerBoxPrice, rHandler.getBeerBoxPrice)
