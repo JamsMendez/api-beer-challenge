@@ -352,7 +352,7 @@ func TestGetBeerBoxPriceParamCurrencyFailed(t *testing.T) {
 }
 
 func TestAddBeer(t *testing.T) {
-	input := &api.BeerInputJSON{
+	input := &api.BeerNewJSON{
 		Name:     "Corona",
 		Brewery:  "Grupo Modelo",
 		Country:  "Mexico",
