@@ -3,6 +3,7 @@ package service_test
 import (
 	"api-beer-challenge/internal/model"
 	"api-beer-challenge/internal/service"
+	"api-beer-challenge/pkg/pagination"
 	"context"
 	"testing"
 
@@ -36,7 +37,12 @@ func TestGetBeers(t *testing.T) {
 		},
 	}
 
-	beers, err := serv.GetBeers(ctx)
+	params := &pagination.PaginationParams{
+		Page:    1,
+		PerPage: 10,
+	}
+
+	beers, err := serv.GetBeers(ctx, params)
 	if err != nil {
 		t.Fatalf("expected %v, got %v", expected, beers)
 	}

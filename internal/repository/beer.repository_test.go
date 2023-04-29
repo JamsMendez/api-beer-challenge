@@ -143,7 +143,7 @@ func findCurrentBeers(ctx context.Context, t *testing.T) {
 	testCase := testCasesBeer["find_none_beers"]
 
 	t.Run(testCase.Description, func(t *testing.T) {
-		bb, err := repo.FindBeers(ctx)
+		bb, err := repo.FindBeers(ctx, 0, 100)
 		if err != nil {
 			t.Fatalf("expected error %v, got %v", testCase.ExpectedErr, err)
 		}

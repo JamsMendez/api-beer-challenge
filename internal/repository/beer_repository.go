@@ -54,7 +54,8 @@ const (
 			created_at,
 			updated_at
 		FROM
-			beers;
+			beers
+		LIMIT $2 OFFSET $1;
 	`
 	queryFindBeerByID = `
 		SELECT
@@ -87,6 +88,8 @@ const (
 		WHERE
 			id = $1;
 	`
+
+	queryCountBeers = "SELECT COUNT(id) FROM beers;"
 )
 
 var (
@@ -109,10 +112,10 @@ type ResponseJSON struct {
 	Success bool    `json:"success"`
 }
 
-func (r *repository) FindBeers(ctx context.Context) ([]entity.Beer, error) {
+func (r *repository) FindBeers(ctx context.Context, skip, limit uint32) ([]entity.Beer, error) {
 	beers := []entity.Beer{}
 
-	err := r.db.SelectContext(ctx, &beers, queryFindBeers)
+	err := r.db.SelectContext(ctx, &beers, queryFindBeers, skip, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +164,12 @@ func (r *repository) FindBoxPriceBeer(ctx context.Context, id, quantity uint64, 
 	}
 
 	return price, nil
+}
+
+func (r *repository) Count(ctx context.Context) (uint32, error) {
+	var count uint32
+	err := r.db.GetContext(ctx, &count, queryCountBeers)
+	return count, err
 }
 
 func (r *repository) InsertBeer(ctx context.Context, input *model.InputBeer) (*entity.Beer, error) {

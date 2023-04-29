@@ -3,22 +3,40 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"api-beer-challenge/internal/entity"
 	"api-beer-challenge/internal/model"
+	"api-beer-challenge/pkg/pagination"
 )
 
 var (
 	ErrCurrencyEmpty = errors.New("currency value is empty")
 )
 
-func (s *service) GetBeers(ctx context.Context) ([]model.Beer, error) {
-	bb, err := s.repository.FindBeers(ctx)
+func (s *service) GetBeers(ctx context.Context, params *pagination.PaginationParams) (*pagination.Pagination, error) {
+	count, err := s.repository.Count(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	beers := []model.Beer{}
+	var beers []model.Beer
+
+	if count == 0 {
+		beerPagination := pagination.New(params.Page, params.PerPage, count)
+		beerPagination.Items = beers
+		return beerPagination, nil
+	}
+
+	skip := params.PerPage * (params.Page - 1)
+	limit := params.PerPage
+
+	fmt.Println(skip, limit)
+
+	bb, err := s.repository.FindBeers(ctx, skip, limit)
+	if err != nil {
+		return nil, err
+	}
 
 	for index := range bb {
 		b := bb[index]
@@ -26,7 +44,11 @@ func (s *service) GetBeers(ctx context.Context) ([]model.Beer, error) {
 		beers = append(beers, *beer)
 	}
 
-	return beers, nil
+	beerPagination := pagination.New(params.Page, params.PerPage, count)
+	beerPagination.Size = uint32(len(beers))
+	beerPagination.Items = beers
+
+	return beerPagination, nil
 }
 
 func (s *service) GetBeer(ctx context.Context, id uint64) (*model.Beer, error) {

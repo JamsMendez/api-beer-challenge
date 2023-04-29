@@ -11,7 +11,8 @@ import (
 
 //go:generate mockery --name=Repository --output=repository --inpackage
 type Repository interface {
-	FindBeers(ctx context.Context) ([]entity.Beer, error)
+	Count(ctx context.Context) (uint32, error)
+	FindBeers(ctx context.Context, skip, limit uint32) ([]entity.Beer, error)
 	FindBeerByID(ctx context.Context, id uint64) (*entity.Beer, error)
 	FindBoxPriceBeer(
 		ctx context.Context,

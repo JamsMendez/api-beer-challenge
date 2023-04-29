@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 		},
 	}
 
-	mockRepository.On("FindBeers", mock.Anything).Return(beers, nil)
+	mockRepository.On("FindBeers", mock.Anything, mock.Anything, mock.Anything).Return(beers, nil)
 
 	// get one beer
 	beerID := uint64(1)

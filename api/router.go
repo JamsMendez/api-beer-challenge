@@ -1,11 +1,13 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"api-beer-challenge/internal/model"
 	"api-beer-challenge/internal/service"
+	"api-beer-challenge/pkg/pagination"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,20 +21,14 @@ func NewRouterHandler(s service.Service) *routerHandler {
 }
 
 func (r *routerHandler) getBeers(c *fiber.Ctx) error {
-	bb, err := r.service.GetBeers(c.Context())
+	params := pagination.NewParamsFromFiber(c)
+	p, err := r.service.GetBeers(c.Context(), params)
 	if err != nil {
+		fmt.Println(err)
 		return c.SendStatus(http.StatusInternalServerError)
 	}
 
-	beers := []BeerJSON{}
-
-	for index := range bb {
-		b := bb[index]
-		beer := BeerToJSON(&b)
-		beers = append(beers, *beer)
-	}
-
-	return c.JSON(beers)
+	return c.JSON(p)
 }
 
 func (r *routerHandler) getBeer(c *fiber.Ctx) error {
